@@ -6,12 +6,12 @@ export const runTest = (): void => {
   if (!key) {
     throw new Error('should define WEBPAGETEST_API_KEY in .env')
   }
-  const url = process.env.RUN_TEST_URL
-  if (!url) {
+  const urls = Utils.parseArrayValue(process.env.RUN_TEST_URL)
+  if (!urls) {
     throw new Error('should define RUN_TEST_URL in .env')
   }
-  const sheetName = process.env.SHEET_NAME
-  if (!sheetName) {
+  const sheetNames = Utils.parseArrayValue(process.env.SHEET_NAME)
+  if (!sheetNames) {
     throw new Error('should define SHEET_NAME in .env')
   }
   // Optional
@@ -27,37 +27,39 @@ export const runTest = (): void => {
   const enabledNetworkErrorReport = Utils.parseBooleanNumberValue(process.env.NETWORK_ERROR_REPORT)
   const wpt = new WebPagetest(key)
   let testId
-  try {
-    testId = wpt.test(url, {
-      runs,
-      location,
-      fvonly,
-      video,
-      // format: JSON for getTestResults
-      format: 'JSON',
-      noOptimization,
-      mobile,
-      mobileDevice,
-      lighthouse,
-      script,
-    })
-  } catch (error) {
-    Logger.log('Failed runTest', error)
-    if (enabledNetworkErrorReport) {
-      throw new error
+  urls.forEach((url, index) => {
+    try {
+      testId = wpt.test(url, {
+        runs,
+        location,
+        fvonly,
+        video,
+        // format: JSON for getTestResults
+        format: 'JSON',
+        noOptimization,
+        mobile,
+        mobileDevice,
+        lighthouse,
+        script,
+      })
+    } catch (error) {
+      Logger.log('Failed runTest', error)
+      if (enabledNetworkErrorReport) {
+        throw new error()
+      }
+      return
     }
-    return
-  }
-  const activeSpreadsheet = SpreadsheetApp.getActiveSpreadsheet()
-  if (!activeSpreadsheet) {
-    throw new Error('Not found active spreadsheet')
-  }
-  const sheet = activeSpreadsheet.getSheetByName(sheetName)
-  if (!sheet) {
-    throw new Error(`Not found sheet by name:${sheetName}`)
-  }
-  const lastRow = sheet.getLastRow()
-  const targetCell = sheet.getRange(lastRow + 1, 1)
+    const activeSpreadsheet = SpreadsheetApp.getActiveSpreadsheet()
+    if (!activeSpreadsheet) {
+      throw new Error('Not found active spreadsheet')
+    }
+    const sheet = activeSpreadsheet.getSheetByName(sheetNames[index])
+    if (!sheet) {
+      throw new Error(`Not found sheet by name:${sheetNames[index]}`)
+    }
+    const lastRow = sheet.getLastRow()
+    const targetCell = sheet.getRange(lastRow + 1, 1)
 
-  targetCell.setValue(testId)
+    targetCell.setValue(testId)
+  })
 }
