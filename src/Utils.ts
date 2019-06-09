@@ -88,6 +88,14 @@ class Utils {
     }
     return new Error(`Does not parsed value: ${value}`)
   }
+
+  public static parseArrayValue(value?: string): Array<string> {
+    if (!value) {
+      return []
+    }
+    const arrayValue = value.split(',')
+    return arrayValue
+  }
 }
 
 export = Utils
